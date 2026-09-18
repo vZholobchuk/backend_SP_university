@@ -7,3 +7,4 @@ PyJWT
 python-dotenv
 httpx
 beautifulsoup4
+python-multipart
