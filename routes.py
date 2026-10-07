@@ -10,7 +10,7 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
 
 def serialize_doc(doc):
     if doc:

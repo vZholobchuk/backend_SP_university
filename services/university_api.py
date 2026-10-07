@@ -142,5 +142,5 @@ async def fetch_pnu_schedule(group_name: str):
             return []
 
     except Exception as e:
-        logger.error(f"Помилка отримання розкладу ПНУ: {e}")
+        logger.error(f"Помилка отримання розкладу: {e}")
         return []
