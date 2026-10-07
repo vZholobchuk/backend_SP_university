@@ -8,10 +8,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Налаштування CORS (щоб клієнт міг робити запити)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # У продакшені варто замінити на конкретні домени
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

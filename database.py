@@ -10,7 +10,7 @@ DATABASE_NAME = os.getenv("DATABASE_NAME", "student_planner")
 client = AsyncIOMotorClient(MONGODB_URL)
 database = client[DATABASE_NAME]
 
-# Collections
+
 tasks_collection = database.get_collection("tasks")
 schedule_collection = database.get_collection("schedule")
 users_collection = database.get_collection("users")

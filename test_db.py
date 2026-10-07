@@ -10,7 +10,7 @@ MONGODB_URL = os.getenv("MONGODB_URL")
 async def test_connection():
     try:
         client = AsyncIOMotorClient(MONGODB_URL, serverSelectionTimeoutMS=5000)
-        # Attempt to get server info to force a connection
+
         info = await client.server_info()
         print("Successfully connected to MongoDB!")
     except Exception as e:

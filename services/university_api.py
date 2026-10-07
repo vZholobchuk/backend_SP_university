@@ -14,19 +14,18 @@ async def fetch_pnu_schedule(group_name: str):
     """
     try:
         async with httpx.AsyncClient() as client:
-            # Виправляємо часту помилку: заміна латинських літер на кириличні
-            # (користувачі часто вводять англійську 'I' замість української 'І' на мобільних)
+
             group_name = group_name.upper()
             translit = {"I": "І", "A": "А", "O": "О", "E": "Е", "C": "С", "P": "Р", "B": "В", "M": "М", "T": "Т", "X": "Х"}
             for lat, cyr in translit.items():
                 group_name = group_name.replace(lat, cyr)
 
             current_date = datetime.now()
-            # Починаємо з понеділка поточного тижня
+
             start_of_week = current_date - timedelta(days=current_date.weekday())
             sdate_str = start_of_week.strftime("%d.%m.%Y")
             
-            # 1 семестр до кінця січня, 2 семестр до кінця липня
+
             if current_date.month >= 8:
                 end_of_semester = datetime(current_date.year + 1, 1, 31)
             elif current_date.month == 1:
@@ -60,7 +59,7 @@ async def fetch_pnu_schedule(group_name: str):
                 
                 for el in soup.find_all(['h4', 'tr']):
                     if el.name == 'h4' and el.find('small'):
-                        # Знайшли заголовок нового дня
+
                         current_date_str = el.contents[0].strip()
                         small = el.find('small')
                         day_name = small.text.strip() if small else ""
@@ -68,7 +67,7 @@ async def fetch_pnu_schedule(group_name: str):
                     elif el.name == 'tr' and current_date_str:
                         cells = el.find_all("td")
                         if len(cells) >= 3:
-                            # Пропускаємо порожні вікна (пари)
+
                             info_str = cells[2].get_text(separator=" ", strip=True)
                             if not info_str:
                                 continue
@@ -83,7 +82,7 @@ async def fetch_pnu_schedule(group_name: str):
                             room_span = content_td.find('span', class_='room_name')
                             teacher_span = content_td.find('span', class_='t_name')
                             
-                            # Пошук посилання на онлайн пару
+
                             a_tag = content_td.find('a')
                             link = a_tag.get('href') if a_tag else None
 
@@ -93,7 +92,7 @@ async def fetch_pnu_schedule(group_name: str):
                             teacher = teacher_span.text.strip() if teacher_span else ""
                             subgroup = subgroup_span.text.strip() if subgroup_span else ""
                             
-                            # Якщо сайт ПНУ не віддає час, беремо стандартний час пар за їх номером
+
                             if not time_str and lesson_num.isdigit():
                                 times = {
                                     1: ("09:00", "10:20"),
@@ -111,12 +110,12 @@ async def fetch_pnu_schedule(group_name: str):
                             else:
                                 t_s, t_e = "09:00", "10:20"
 
-                            # Намагаємося розпарсити дату та час
+
                             try:
                                 h_s, m_s = map(int, t_s.split(":"))
                                 h_e, m_e = map(int, t_e.split(":"))
                                 
-                                # Парсимо дату з date_str (напр. "17.09.2024")
+
                                 d, m, y = map(int, current_date_str.strip().split(" ")[0].split("."))
                                 start_dt = datetime(y, m, d, h_s, m_s)
                                 end_dt = datetime(y, m, d, h_e, m_e)
@@ -139,7 +138,7 @@ async def fetch_pnu_schedule(group_name: str):
                 if len(parsed_schedule) > 0:
                     return parsed_schedule
             
-            # Якщо таблиць не знайдено
+
             return []
 
     except Exception as e:

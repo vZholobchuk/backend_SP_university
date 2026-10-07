@@ -17,7 +17,7 @@ def serialize_doc(doc):
         doc["_id"] = str(doc["_id"])
     return doc
 
-# --- AUTH ---
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user: UserCreate):
     existing_user = await users_collection.find_one({"email": user.email})
@@ -62,7 +62,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return serialize_doc(user)
 
-# --- TASKS ---
+
 @router.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(task: TaskCreate, current_user: dict = Depends(get_current_user)):
     task_dict = task.model_dump(exclude_unset=True)
@@ -111,7 +111,7 @@ async def delete_task(task_id: str, current_user: dict = Depends(get_current_use
         return
     raise HTTPException(status_code=404, detail="Task not found")
 
-# --- SCHEDULE ---
+
 from pydantic import BaseModel
 class SyncRequest(BaseModel):
     group_name: str
@@ -121,7 +121,7 @@ async def sync_schedule(sync_req: SyncRequest, current_user: dict = Depends(get_
     """Отримує реальний (або моковий) розклад з ПНУ та зберігає його в базу"""
     schedule_data = await fetch_pnu_schedule(sync_req.group_name)
     
-    # Видалити старий розклад користувача, щоб уникнути дублікатів
+
     await schedule_collection.delete_many({"user_id": current_user["_id"]})
     
     inserted_entries = []
