@@ -10,7 +10,7 @@ PNU_SCHEDULE_URL = "https://asu-srv.pnu.edu.ua/cgi-bin/timetable.cgi?n=700"
 
 async def fetch_pnu_schedule(group_name: str):
     """
-    Спроба отримати розклад з ПНУ. Використовує логіку скрейпінгу.
+    Спроба отримати розклад .
     """
     try:
         async with httpx.AsyncClient() as client:
