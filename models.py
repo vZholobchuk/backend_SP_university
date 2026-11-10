@@ -20,7 +20,9 @@ class TaskBase(BaseModel):
     priority: TaskPriority = Field(default=TaskPriority.medium)
     deadline: Optional[datetime] = None
     subject: str = Field(..., example="Проєктування програмних продуктів")
-    grade: Optional[float] = Field(None, example=95.5)
+    category: Optional[str] = Field(default="Лабораторна", example="Лабораторна")
+    grade: Optional[float] = Field(None, example=9.0)
+    max_grade: Optional[float] = Field(default=100.0, example=10.0)
 
 class TaskCreate(TaskBase):
     pass
@@ -32,7 +34,9 @@ class TaskUpdate(BaseModel):
     priority: Optional[TaskPriority] = None
     deadline: Optional[datetime] = None
     subject: Optional[str] = None
+    category: Optional[str] = None
     grade: Optional[float] = None
+    max_grade: Optional[float] = None
 
 class TaskResponse(TaskBase):
     id: str = Field(..., alias="_id")
