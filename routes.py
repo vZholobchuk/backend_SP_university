@@ -3,9 +3,11 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from bson import ObjectId
 from typing import List
 from database import tasks_collection, schedule_collection, users_collection
-from models import TaskCreate, TaskUpdate, TaskResponse, ScheduleCreate, ScheduleResponse, UserCreate, UserResponse, UserInDB
+from models import TaskCreate, TaskUpdate, TaskResponse, ScheduleCreate, ScheduleResponse, UserCreate, UserResponse, UserInDB, HiddenSubjectsUpdate
 from auth import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 from services.university_api import fetch_pnu_schedule
+from patterns.strategies import GradeCalculator, SimpleAverageStrategy, WeightedGradeStrategy, ECTSRatingStrategy
+from patterns.reports import AcademicReportCreator, TasksReportCreator
 import jwt
 from jwt.exceptions import InvalidTokenError
 
@@ -146,3 +148,77 @@ async def create_schedule_entry(entry: ScheduleCreate, current_user: dict = Depe
 async def get_schedule(current_user: dict = Depends(get_current_user)):
     entries = await schedule_collection.find({"user_id": current_user["_id"]}).sort("start_time", 1).to_list(1000)
     return [serialize_doc(entry) for entry in entries]
+
+
+@router.get("/users/me", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    if "hidden_subjects" not in current_user:
+        current_user["hidden_subjects"] = []
+    return current_user
+
+
+@router.put("/users/me/subjects", response_model=UserResponse)
+async def update_hidden_subjects(payload: HiddenSubjectsUpdate, current_user: dict = Depends(get_current_user)):
+    update_fields = {"hidden_subjects": payload.hidden_subjects}
+    if payload.group_name is not None:
+        update_fields["group_name"] = payload.group_name
+    await users_collection.update_one(
+        {"_id": ObjectId(current_user["_id"])},
+        {"$set": update_fields}
+    )
+    updated_user = await users_collection.find_one({"_id": ObjectId(current_user["_id"])})
+    return serialize_doc(updated_user)
+
+
+@router.get("/stats/performance")
+async def get_academic_performance(mode: str = "by_subject", current_user: dict = Depends(get_current_user)):
+    """Обчислює детальну відомість успішності за предметами та шкалою ЄКТС із використанням патернів Strategy та Factory Method."""
+    tasks = await tasks_collection.find({"user_id": current_user["_id"]}).to_list(500)
+
+    by_subject = {}
+    for t in tasks:
+        subj = t.get("subject", "Інше")
+        if subj not in by_subject:
+            by_subject[subj] = {"grades": [], "weights": [], "total_tasks": 0, "done_tasks": 0}
+        by_subject[subj]["total_tasks"] += 1
+        if t.get("status") == "Виконано":
+            by_subject[subj]["done_tasks"] += 1
+        if t.get("grade") is not None:
+            by_subject[subj]["grades"].append(float(t["grade"]))
+            pr_w = {"Високий": 2.0, "Середній": 1.5, "Низький": 1.0}.get(t.get("priority"), 1.0)
+            by_subject[subj]["weights"].append(pr_w)
+
+    disciplines_data = []
+    subject_scores = []
+    for subj, info in by_subject.items():
+        if info["grades"]:
+            if mode == "accumulative":
+                score = min(100.0, round(sum(info["grades"]), 1))
+            elif mode == "weighted":
+                calc = GradeCalculator(WeightedGradeStrategy())
+                score = calc.compute(info["grades"], weights=info["weights"])["average"]
+            else:
+                calc = GradeCalculator(SimpleAverageStrategy())
+                score = calc.compute(info["grades"])["average"]
+            subject_scores.append(score)
+        else:
+            score = 0.0
+        disciplines_data.append({"subject": subj, "credits": 4, "score": score})
+
+    ects_calc = GradeCalculator(ECTSRatingStrategy())
+    ects_summary = ects_calc.compute(subject_scores)
+    academic_report = AcademicReportCreator().render({
+        "student_name": current_user.get("name", "Студент"),
+        "group": current_user.get("group_name", "ІПЗ-41"),
+        "disciplines": disciplines_data
+    })
+    tasks_report = TasksReportCreator().render({
+        "student_name": current_user.get("name", "Студент"),
+        "tasks": tasks
+    })
+
+    return {
+        "ects_summary": ects_summary,
+        "academic_report": academic_report,
+        "tasks_summary": tasks_report["statistics"]
+    }

@@ -70,6 +70,8 @@ class ScheduleResponse(ScheduleBase):
 class UserBase(BaseModel):
     email: str = Field(..., example="student@example.com")
     name: str = Field(..., example="Іван Іванов")
+    group_name: Optional[str] = Field(None, example="ІПЗ-41")
+    hidden_subjects: list[str] = Field(default_factory=list, description="Вибіркові предмети, які студент не відвідує")
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6, example="password123")
@@ -82,3 +84,7 @@ class UserResponse(UserBase):
 
     class Config:
         populate_by_name = True
+
+class HiddenSubjectsUpdate(BaseModel):
+    group_name: Optional[str] = None
+    hidden_subjects: list[str] = Field(default_factory=list)
